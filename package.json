@@ -1,0 +1,15 @@
+
+{
+  "name": "chatkit-railway",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "NODE_ENV=development node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-fetch": "^3.4.1",
+    "cookie-session": "^2.0.0"
+  }
+}
