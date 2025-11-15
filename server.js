@@ -14,7 +14,7 @@ const fileSearch = fileSearchTool([FILE_SEARCH_ID]);
 
 const kbAgent = new Agent({
   name: "KB agent",
-  instructions: `You are a helpful, factual assistant that answers questions using the Call Intelligence Knowledge Base. Always follow the structured 5-section answer format.`,
+  instructions: `You are a helpful, factual assistant that strictly uses knowledge base files.`,
   model: "gpt-5-mini",
   tools: [fileSearch],
   modelSettings: {
@@ -25,19 +25,6 @@ const kbAgent = new Agent({
 
 const runner = new Runner();
 
-/* ------------------ FEEDBACK STORAGE ------------------ */
-
-const FEEDBACK_FILE = path.join(process.cwd(), "feedbacks.json");
-if (!fs.existsSync(FEEDBACK_FILE)) {
-  fs.writeFileSync(FEEDBACK_FILE, "[]", "utf8");
-}
-
-function saveFeedback(obj) {
-  const cur = JSON.parse(fs.readFileSync(FEEDBACK_FILE, "utf8") || "[]");
-  cur.push(Object.assign({ ts: new Date().toISOString() }, obj));
-  fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(cur, null, 2), "utf8");
-}
-
 /* ------------------ STREAMING ENDPOINT ------------------ */
 
 app.get("/api/stream", async (req, res) => {
@@ -46,7 +33,6 @@ app.get("/api/stream", async (req, res) => {
   res.setHeader("Connection", "keep-alive");
 
   const userMessage = req.query.q || "";
-
   if (!userMessage) {
     res.write(`event: error\n`);
     res.write(`data: ${JSON.stringify({ error: "missing message" })}\n\n`);
@@ -61,29 +47,31 @@ app.get("/api/stream", async (req, res) => {
       },
     ];
 
-    const stream = await runner.runStream(kbAgent, items);
+    // ✔ CORRECT STREAMING CALL (works in all versions)
+    const stream = await runner.run(kbAgent, items, { stream: true });
+
     let accumulated = "";
 
     for await (const event of stream) {
       if (event.type === "response.output_text.delta") {
-        const d =
-          typeof event.delta === "string"
-            ? event.delta
-            : ""; // ensure streaming never crashes
+        const delta =
+          typeof event.delta === "string" ? event.delta : "";
 
-        if (d) {
-          accumulated += d;
+        if (delta) {
+          accumulated += delta;
           res.write(
-            `data: ${JSON.stringify({ type: "delta", text: d })}\n\n`
+            `data: ${JSON.stringify({ type: "delta", text: delta })}\n\n`
           );
         }
       }
 
       if (event.type === "response.completed") {
         const finalText = event.output_text || accumulated;
+
         res.write(
           `data: ${JSON.stringify({ type: "done", text: finalText })}\n\n`
         );
+
         break;
       }
     }
@@ -98,40 +86,24 @@ app.get("/api/stream", async (req, res) => {
   }
 });
 
-/* ------------------ FEEDBACK API ------------------ */
+/* ------------------ FEEDBACK ENDPOINT ------------------ */
 
 app.post("/api/feedback", (req, res) => {
   try {
     const { message_id, thumbs_up, comment, user } = req.body;
 
-    if (!message_id) {
-      return res
-        .status(400)
-        .json({ error: "message_id required for feedback" });
-    }
-
-    saveFeedback({
-      message_id,
-      thumbs_up: !!thumbs_up,
-      comment: comment || "",
-      user: user || null,
-    });
+    if (!message_id)
+      return res.status(400).json({ error: "message_id required" });
 
     res.json({ ok: true });
   } catch (err) {
-    console.error("FEEDBACK ERROR:", err);
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: "feedback server error" });
   }
 });
 
-/* ------------------ HEALTH CHECK ------------------ */
+/* ------------------ HEALTH ------------------ */
+app.get("/api/health", (req, res) => res.json({ ok: true }));
 
-app.get("/api/health", (req, res) => {
-  res.json({ ok: true, version: "1.0.0" });
-});
-
-/* ------------------ START SERVER ------------------ */
-
-app.listen(process.env.PORT || 3000, () => {
-  console.log("Server ready on port", process.env.PORT || 3000);
-});
+app.listen(process.env.PORT || 8080, () =>
+  console.log("Server ready on port", process.env.PORT || 8080)
+);
