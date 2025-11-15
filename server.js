@@ -1,50 +1,46 @@
 import express from "express";
-import fetch from "node-fetch";
 import path from "path";
+import { fileSearchTool, Agent, Runner } from "@openai/agents";
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(process.cwd(), "public")));
 
+const fileSearch = fileSearchTool(["vs_68f12d4b76648191992344188f6a8f82"]);
+
+const kbAgent = new Agent({
+  name: "KB agent",
+  instructions: `You are a helpful, factual assistant that answers questions using the Call Intelligence Knowledge Base. Always follow the structured 5-section output format.`,
+  model: "gpt-5-mini",
+  tools: [fileSearch],
+  modelSettings: {
+    reasoning: { effort: "low", summary: "auto" },
+    store: true
+  }
+});
+
+const runner = new Runner({});
+
 app.post("/api/chat", async (req, res) => {
   try {
-    const message = req.body.message;
-
-    const openaiResp = await fetch(
-      `https://api.openai.com/v1/agents/${process.env.AGENT_ID}/messages`,
+    const userMessage = req.body.message;
+    const items = [
       {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: "user",
-              content: message
-            }
-          ]
-        })
+        role: "user",
+        content: [{ type: "input_text", text: userMessage }]
       }
-    );
+    ];
 
-    const data = await openaiResp.json();
-    console.log("RAW:", JSON.stringify(data, null, 2));
+    const result = await runner.run(kbAgent, items);
+    const final = result?.finalOutput ?? "⚠️ No final output returned by Agent.";
 
-    let reply =
-      data?.output_text ??
-      data?.messages?.[data.messages.length - 1]?.content?.[0]?.text ??
-      "⚠️ No reply generated from Agent.";
-
-    res.json({ reply });
-
+    res.json({ reply: final });
   } catch (err) {
-    console.error("SERVER ERROR:", err);
-    res.status(500).json({ reply: "Server error." });
+    console.error("AGENT ERROR:", err);
+    res.status(500).json({ reply: "Server error running the Agent." });
   }
 });
 
 app.listen(process.env.PORT || 3000, () => {
-  console.log("Server running on port", process.env.PORT || 3000);
+  console.log("Server ready on", process.env.PORT || 3000);
 });
