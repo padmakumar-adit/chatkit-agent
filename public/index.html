@@ -2,58 +2,33 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Knowledge Agent — Streaming</title>
+  <title>Knowledge Agent</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
-    :root {
-      --bg: #0f1720;
-      --panel: #0b1220;
-      --muted: #9aa6b2;
-      --accent: #2563eb;
-      --ai-bg: #0b1228;
-      --user-bg: #1f2937;
-      --ai-text: #e6eef8;
-      --user-text: #e8f0ff;
-    }
-    [data-theme="light"] {
-      --bg: #f4f6f8;
-      --panel: #ffffff;
-      --muted: #6b7280;
-      --accent: #0b74ff;
-      --ai-bg: #ffffff;
-      --user-bg: #e6f0ff;
-      --ai-text: #0b1220;
-      --user-text: #0b1220;
-    }
-
-    html, body {
-      height: 100%;
+    body {
       margin: 0;
-      background: var(--bg);
+      background: #0f172a;
       font-family: Arial, sans-serif;
-      color: var(--ai-text);
+      color: #e2e8f0;
     }
 
     .app {
       max-width: 900px;
       margin: 0 auto;
       height: 100vh;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      padding: 16px;
-      box-sizing: border-box;
     }
 
     .panel {
-      background: var(--panel);
-      height: 100%;
+      background: #0b1220;
+      flex: 1;
       border-radius: 12px;
       padding: 16px;
       display: flex;
       flex-direction: column;
-      box-sizing: border-box;
-      box-shadow: 0 6px 18px rgba(2,6,23,0.6);
     }
 
     .messages {
@@ -67,201 +42,189 @@
 
     .msg-row {
       display: flex;
-      gap: 12px;
+      gap: 10px;
     }
 
     .avatar {
       width: 40px;
       height: 40px;
+      background: #0ea5e9;
       border-radius: 50%;
-      background: linear-gradient(135deg, #0ea5e9, #06b6d4);
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
-      color: #fff;
+      color: white;
     }
 
     .bubble {
       max-width: 75%;
       padding: 12px;
-      background: var(--ai-bg);
+      background: #0b1228;
       border-radius: 10px;
       border: 1px solid rgba(255,255,255,0.06);
       white-space: pre-wrap;
-      line-height: 1.4;
     }
 
     .msg-row.user .bubble {
-      background: var(--user-bg);
-      color: var(--user-text);
-      align-self: flex-end;
+      background: #1f2937;
     }
 
     .input-area {
       display: flex;
       gap: 10px;
-      padding-top: 12px;
+      padding-top: 10px;
     }
 
     input {
       flex: 1;
       padding: 14px;
-      font-size: 16px;
-      border-radius: 12px;
-      border: 2px solid var(--accent);
+      border-radius: 10px;
+      border: 2px solid #2563eb;
       background: transparent;
-      color: var(--ai-text);
+      color: white;
+      font-size: 16px;
     }
 
     button {
-      padding: 14px 18px;
-      font-size: 16px;
-      border-radius: 12px;
+      padding: 14px 20px;
+      border-radius: 10px;
       border: none;
-      background: var(--accent);
-      color: #fff;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
       cursor: pointer;
-    }
-
-    pre {
-      background: #071026;
-      color: #dbeafe;
-      padding: 10px;
-      border-radius: 8px;
-      overflow-x: auto;
     }
   </style>
 </head>
 
-<body data-theme="dark">
-
+<body>
 <div class="app">
   <div class="panel">
     <div id="messages" class="messages"></div>
 
     <div class="input-area">
-      <input id="input" placeholder="Ask something..." />
+      <input id="input" placeholder="Ask something…" />
       <button id="sendBtn">Send</button>
     </div>
   </div>
 </div>
 
+
 <script>
 /* ---------------- CONFIG ---------------- */
-const API_BASE = "https://chatkit-agent-production.up.railway.app";  /* <-- REPLACE THIS */
+const API_BASE = "https://chatkit-agent-production.up.railway.app";
 
-/* ---------------- Markdown renderer ---------------- */
-function escapeHtml(s) {
-  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-}
-function md(s) {
-  if (!s) return "";
-  s = s.replace(/```([\s\S]*?)```/g, (m, code) => "<pre><code>" + escapeHtml(code) + "</code></pre>");
-  s = s.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-  s = s.replace(/\*(.*?)\*/g, "<em>$1</em>");
-  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
-  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-  s = s.replace(/\n/g, "<br>");
+/* ---------------- SAFE EVENT DELEGATION FIX ---------------- */
+document.addEventListener("click", (e) => {
+  if (e.target && e.target.id === "sendBtn") {
+    send();
+  }
+});
+
+/* For Enter key — also safe */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    const active = document.activeElement;
+    if (active && active.id === "input") send();
+  }
+});
+
+/* ---------------- Markdown ---------------- */
+function escapeHtml(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function md(s){
+  if(!s) return "";
+  s=s.replace(/```([\s\S]*?)```/g,(m,c)=>"<pre><code>"+escapeHtml(c)+"</code></pre>");
+  s=s.replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>");
+  s=s.replace(/\*(.*?)\*/g,"<em>$1</em>");
+  s=s.replace(/`([^`]+)`/g,"<code>$1</code>");
+  s=s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank">$1</a>');
+  s=s.replace(/\n/g,"<br>");
   return s;
 }
 
 /* ---------------- DOM helpers ---------------- */
-const messages = document.getElementById("messages");
+const messages=document.getElementById("messages");
 
-function addUserMessage(text) {
-  const row = document.createElement("div");
-  row.className = "msg-row user";
-
-  const bubble = document.createElement("div");
-  bubble.className = "bubble";
-  bubble.textContent = text;
-
-  row.appendChild(bubble);
+function addUserMessage(t){
+  const row=document.createElement("div");
+  row.className="msg-row user";
+  const b=document.createElement("div");
+  b.className="bubble";
+  b.textContent=t;
+  row.appendChild(b);
   messages.appendChild(row);
-  messages.scrollTop = messages.scrollHeight;
+  messages.scrollTop=messages.scrollHeight;
 }
 
-function addAiBubble() {
-  const row = document.createElement("div");
-  row.className = "msg-row ai";
+function addAiBubble(){
+  const row=document.createElement("div");
+  row.className="msg-row ai";
 
-  const avatar = document.createElement("div");
-  avatar.className = "avatar";
-  avatar.textContent = "KB";
+  const a=document.createElement("div");
+  a.className="avatar";
+  a.textContent="KB";
 
-  const bubble = document.createElement("div");
-  bubble.className = "bubble";
-  bubble.innerHTML = "<span id='stream'></span>";
+  const b=document.createElement("div");
+  b.className="bubble";
+  b.innerHTML="<span id='stream'></span>";
 
-  row.appendChild(avatar);
-  row.appendChild(bubble);
-
+  row.appendChild(a);
+  row.appendChild(b);
   messages.appendChild(row);
-  messages.scrollTop = messages.scrollHeight;
+  messages.scrollTop=messages.scrollHeight;
 
-  return bubble.querySelector("#stream");
+  return b.querySelector("#stream");
 }
 
 /* ---------------- STREAMING ---------------- */
-async function send() {
-  const input = document.getElementById("input");
-  const text = input.value.trim();
-  if (!text) return;
+async function send(){
+  const input=document.getElementById("input");
+  const text=input.value.trim();
+  if(!text) return;
 
   addUserMessage(text);
-  input.value = "";
+  input.value="";
 
   const streamEl = addAiBubble();
 
   const resp = await fetch(`${API_BASE}/api/stream?q=` + encodeURIComponent(text));
-
-  if (!resp.ok) {
-    streamEl.textContent = "Server error";
+  if(!resp.ok){
+    streamEl.textContent="Server error.";
     return;
   }
 
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();
-  let final = "";
+  let final="";
 
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-
+  while(true){
+    const {value,done}=await reader.read();
+    if(done) break;
     const chunk = decoder.decode(value);
-    const events = chunk.split("\n\n");
+    const events=chunk.split("\n\n");
 
-    for (const evt of events) {
-      if (!evt.startsWith("data: ")) continue;
+    for(const e of events){
+      if(!e.startsWith("data: ")) continue;
 
-      const jsonStr = evt.slice(6).trim();
+      const json=e.slice(6).trim();
       let obj;
-      try { obj = JSON.parse(jsonStr); } catch { continue; }
+      try{obj=JSON.parse(json);}catch{continue;}
 
-      if (obj.type === "delta") {
-        streamEl.textContent += obj.text;
-        final += obj.text;
+      if(obj.type==="delta"){
+        streamEl.textContent+=obj.text;
+        final+=obj.text;
       }
-      if (obj.type === "done") {
-        final = obj.text || final;
+      if(obj.type==="done"){
+        final=obj.text||final;
       }
     }
 
-    messages.scrollTop = messages.scrollHeight;
+    messages.scrollTop=messages.scrollHeight;
   }
 
   streamEl.innerHTML = md(final);
 }
-
-/* ---------------- FIX: Attach event listeners after DOM load ---------------- */
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("sendBtn").addEventListener("click", send);
-
-  document.getElementById("input").addEventListener("keydown", e => {
-    if (e.key === "Enter") send();
-  });
-});
 </script>
 
 </body>
