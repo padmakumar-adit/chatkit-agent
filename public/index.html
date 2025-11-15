@@ -26,12 +26,15 @@
       --ai-text: #0b1220;
       --user-text: #0b1220;
     }
+
     html, body {
-      height: 100%; margin: 0;
+      height: 100%;
+      margin: 0;
       background: var(--bg);
-      color: var(--ai-text);
       font-family: Arial, sans-serif;
+      color: var(--ai-text);
     }
+
     .app {
       max-width: 900px;
       margin: 0 auto;
@@ -41,6 +44,7 @@
       padding: 16px;
       box-sizing: border-box;
     }
+
     .panel {
       background: var(--panel);
       height: 100%;
@@ -49,62 +53,77 @@
       display: flex;
       flex-direction: column;
       box-sizing: border-box;
+      box-shadow: 0 6px 18px rgba(2,6,23,0.6);
     }
+
     .messages {
       flex: 1;
       overflow-y: auto;
-      padding-bottom: 10px;
       display: flex;
       flex-direction: column;
       gap: 14px;
+      padding-bottom: 12px;
     }
+
     .msg-row {
       display: flex;
       gap: 12px;
-      align-items: flex-start;
     }
+
     .avatar {
-      width: 40px; height: 40px; border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
       background: linear-gradient(135deg, #0ea5e9, #06b6d4);
-      display: flex; align-items: center; justify-content: center;
-      color: #fff; font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #fff;
     }
+
     .bubble {
       max-width: 75%;
       padding: 12px;
-      border-radius: 10px;
       background: var(--ai-bg);
-      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.06);
       white-space: pre-wrap;
+      line-height: 1.4;
     }
-    .user .bubble {
-      align-self: flex-end;
+
+    .msg-row.user .bubble {
       background: var(--user-bg);
       color: var(--user-text);
+      align-self: flex-end;
     }
+
     .input-area {
       display: flex;
       gap: 10px;
       padding-top: 12px;
     }
+
     input {
       flex: 1;
       padding: 14px;
+      font-size: 16px;
       border-radius: 12px;
       border: 2px solid var(--accent);
       background: transparent;
       color: var(--ai-text);
-      font-size: 16px;
     }
+
     button {
       padding: 14px 18px;
+      font-size: 16px;
       border-radius: 12px;
       border: none;
       background: var(--accent);
       color: #fff;
-      font-size: 16px;
       cursor: pointer;
     }
+
     pre {
       background: #071026;
       color: #dbeafe;
@@ -130,7 +149,7 @@
 
 <script>
 /* ---------------- CONFIG ---------------- */
-const API_BASE = "https://chatkit-agent-production.up.railway.app";   // <-- REPLACE THIS
+const API_BASE = "https://chatkit-agent-production.up.railway.app";  /* <-- REPLACE THIS */
 
 /* ---------------- Markdown renderer ---------------- */
 function escapeHtml(s) {
@@ -138,12 +157,12 @@ function escapeHtml(s) {
 }
 function md(s) {
   if (!s) return "";
-  s = s.replace(/```([\s\S]*?)```/g, (m,code)=>"<pre><code>"+escapeHtml(code)+"</code></pre>");
-  s = s.replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>");
-  s = s.replace(/\*(.*?)\*/g,"<em>$1</em>");
-  s = s.replace(/`([^`]+)`/g,"<code>$1</code>");
-  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank">$1</a>');
-  s = s.replace(/\n/g,"<br>");
+  s = s.replace(/```([\s\S]*?)```/g, (m, code) => "<pre><code>" + escapeHtml(code) + "</code></pre>");
+  s = s.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/\*(.*?)\*/g, "<em>$1</em>");
+  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+  s = s.replace(/\n/g, "<br>");
   return s;
 }
 
@@ -151,45 +170,47 @@ function md(s) {
 const messages = document.getElementById("messages");
 
 function addUserMessage(text) {
-  const row=document.createElement("div");
-  row.className="msg-row user";
-  const b=document.createElement("div");
-  b.className="bubble";
-  b.textContent=text;
-  row.appendChild(b);
+  const row = document.createElement("div");
+  row.className = "msg-row user";
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = text;
+
+  row.appendChild(bubble);
   messages.appendChild(row);
-  messages.scrollTop=messages.scrollHeight;
+  messages.scrollTop = messages.scrollHeight;
 }
 
 function addAiBubble() {
-  const row=document.createElement("div");
-  row.className="msg-row ai";
+  const row = document.createElement("div");
+  row.className = "msg-row ai";
 
-  const avatar=document.createElement("div");
-  avatar.className="avatar";
-  avatar.textContent="KB";
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.textContent = "KB";
 
-  const bubble=document.createElement("div");
-  bubble.className="bubble";
-  bubble.innerHTML="<span id='stream'></span>";
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.innerHTML = "<span id='stream'></span>";
 
   row.appendChild(avatar);
   row.appendChild(bubble);
-  messages.appendChild(row);
 
-  messages.scrollTop=messages.scrollHeight;
+  messages.appendChild(row);
+  messages.scrollTop = messages.scrollHeight;
 
   return bubble.querySelector("#stream");
 }
 
 /* ---------------- STREAMING ---------------- */
 async function send() {
-  const input=document.getElementById("input");
-  const text=input.value.trim();
+  const input = document.getElementById("input");
+  const text = input.value.trim();
   if (!text) return;
 
   addUserMessage(text);
-  input.value="";
+  input.value = "";
 
   const streamEl = addAiBubble();
 
@@ -205,36 +226,41 @@ async function send() {
   let final = "";
 
   while (true) {
-    const {value, done} = await reader.read();
+    const { value, done } = await reader.read();
     if (done) break;
 
     const chunk = decoder.decode(value);
     const events = chunk.split("\n\n");
 
-    for (const e of events) {
-      if (!e.startsWith("data: ")) continue;
-      const json = e.slice(6).trim();
+    for (const evt of events) {
+      if (!evt.startsWith("data: ")) continue;
+
+      const jsonStr = evt.slice(6).trim();
       let obj;
-      try { obj = JSON.parse(json); } catch { continue; }
+      try { obj = JSON.parse(jsonStr); } catch { continue; }
 
       if (obj.type === "delta") {
         streamEl.textContent += obj.text;
         final += obj.text;
-        messages.scrollTop = messages.scrollHeight;
       }
       if (obj.type === "done") {
         final = obj.text || final;
       }
     }
+
+    messages.scrollTop = messages.scrollHeight;
   }
 
   streamEl.innerHTML = md(final);
 }
 
-/* ---------------- Event listeners ---------------- */
-document.getElementById("sendBtn").addEventListener("click", send);
-document.getElementById("input").addEventListener("keydown", e => {
-  if (e.key === "Enter") send();
+/* ---------------- FIX: Attach event listeners after DOM load ---------------- */
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("sendBtn").addEventListener("click", send);
+
+  document.getElementById("input").addEventListener("keydown", e => {
+    if (e.key === "Enter") send();
+  });
 });
 </script>
 
