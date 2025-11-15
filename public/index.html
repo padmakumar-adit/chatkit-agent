@@ -3,300 +3,239 @@
 <head>
   <meta charset="utf-8" />
   <title>Knowledge Agent — Streaming</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
-    :root{
-      --bg:#0f1720; --panel:#0b1220; --muted:#9aa6b2; --accent:#2563eb;
-      --ai-bg:#0b1228; --user-bg:#1f2937; --ai-text:#e6eef8; --user-text:#e8f0ff;
+    :root {
+      --bg: #0f1720;
+      --panel: #0b1220;
+      --muted: #9aa6b2;
+      --accent: #2563eb;
+      --ai-bg: #0b1228;
+      --user-bg: #1f2937;
+      --ai-text: #e6eef8;
+      --user-text: #e8f0ff;
     }
-    [data-theme="light"]{
-      --bg:#f4f6f8; --panel:#ffffff; --muted:#6b7280; --accent:#0b74ff;
-      --ai-bg:#ffffff; --user-bg:#e6f0ff; --ai-text:#0b1220; --user-text:#0b1220;
+    [data-theme="light"] {
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --muted: #6b7280;
+      --accent: #0b74ff;
+      --ai-bg: #ffffff;
+      --user-bg: #e6f0ff;
+      --ai-text: #0b1220;
+      --user-text: #0b1220;
     }
-
-    html,body{
-      height:100%; margin:0;
-      font-family:Inter, Arial, sans-serif;
-      background:var(--bg); color:var(--ai-text);
+    html, body {
+      height: 100%; margin: 0;
+      background: var(--bg);
+      color: var(--ai-text);
+      font-family: Arial, sans-serif;
     }
-
-    .app{
-      max-width:980px; margin:0 auto; height:100vh;
-      display:flex; flex-direction:column;
-      padding:18px; box-sizing:border-box;
+    .app {
+      max-width: 900px;
+      margin: 0 auto;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      box-sizing: border-box;
     }
-
-    .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-    .brand{display:flex;align-items:center;gap:12px}
-    .logo{
-      width:44px;height:44px;border-radius:10px;
-      background:linear-gradient(135deg,#1e3a8a,#0ea5e9);
-      display:flex;align-items:center;justify-content:center;
-      color:#fff;font-weight:700;font-size:18px
+    .panel {
+      background: var(--panel);
+      height: 100%;
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
     }
-    .title{font-size:16px;font-weight:600}
-    .controls{display:flex;gap:8px;align-items:center}
-    .toggle{
-      background:transparent;border:1px solid rgba(255,255,255,0.06);
-      padding:8px;border-radius:8px;color:var(--muted);cursor:pointer
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
     }
-
-    .panel{
-      flex:1; display:flex; flex-direction:column;
-      background:var(--panel); border-radius:12px;
-      padding:16px; box-shadow:0 6px 18px rgba(2,6,23,0.6);
+    .msg-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
     }
-
-    .messages{
-      flex:1; overflow-y:auto;
-      padding:8px; display:flex; flex-direction:column; gap:12px;
+    .avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: bold;
     }
-
-    .msg-row{display:flex;gap:12px;align-items:flex-end}
-    .msg-row.ai{align-items:flex-start}
-
-    .avatar{
-      width:40px;height:40px;border-radius:50%;
-      display:flex;align-items:center;justify-content:center;
-      font-weight:700;color:#fff;flex-shrink:0
+    .bubble {
+      max-width: 75%;
+      padding: 12px;
+      border-radius: 10px;
+      background: var(--ai-bg);
+      border: 1px solid rgba(255,255,255,0.07);
+      white-space: pre-wrap;
     }
-    .avatar.ai{background:linear-gradient(135deg,#0ea5e9,#06b6d4)}
-    .avatar.user{background:linear-gradient(135deg,#7c3aed,#a78bfa)}
-
-    .bubble{
-      max-width:78%; padding:12px 14px; border-radius:12px;
-      line-height:1.4; white-space:pre-wrap;
-      box-shadow:0 2px 6px rgba(2,6,23,0.4);
+    .user .bubble {
+      align-self: flex-end;
+      background: var(--user-bg);
+      color: var(--user-text);
     }
-    .bubble.ai{
-      background:var(--ai-bg);color:var(--ai-text);
-      border:1px solid rgba(255,255,255,0.03);
-      border-top-left-radius:4px;
+    .input-area {
+      display: flex;
+      gap: 10px;
+      padding-top: 12px;
     }
-    .bubble.user{
-      background:var(--user-bg);color:var(--user-text);
-      align-self:flex-end;border-top-right-radius:4px;
+    input {
+      flex: 1;
+      padding: 14px;
+      border-radius: 12px;
+      border: 2px solid var(--accent);
+      background: transparent;
+      color: var(--ai-text);
+      font-size: 16px;
     }
-
-    .meta{font-size:12px;color:var(--muted);margin-top:6px;display:flex;gap:8px;align-items:center}
-    .feedback{display:flex;gap:8px;margin-top:8px;align-items:center}
-    .fb-btn{
-      background:transparent;border:1px solid rgba(255,255,255,0.06);
-      padding:6px 8px;border-radius:8px;color:var(--muted);cursor:pointer
+    button {
+      padding: 14px 18px;
+      border-radius: 12px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
     }
-
-    .input-area{display:flex;gap:8px;padding-top:12px}
-    .input{
-      flex:1;padding:12px;border-radius:10px;
-      border:1px solid rgba(255,255,255,0.04);
-      background:transparent;color:var(--ai-text);
+    pre {
+      background: #071026;
+      color: #dbeafe;
+      padding: 10px;
+      border-radius: 8px;
+      overflow-x: auto;
     }
-    .send{
-      padding:10px 14px;border-radius:10px;border:none;
-      background:var(--accent);color:#fff;cursor:pointer;
-    }
-
-    pre{
-      background:#071026;color:#dbeafe;padding:10px;
-      border-radius:8px;overflow:auto
-    }
-    code{
-      background:rgba(0,0,0,0.15);padding:2px 6px;border-radius:6px
-    }
-
   </style>
 </head>
 
 <body data-theme="dark">
+
 <div class="app">
-
-  <div class="header">
-    <div class="brand">
-      <div class="logo">KB</div>
-      <div>
-        <div class="title">Call Intelligence — Knowledge Agent</div>
-        <div class="small" style="color:var(--muted)">Live Answers from Your Knowledge Base</div>
-      </div>
-    </div>
-
-    <div class="controls">
-      <button id="themeBtn" class="toggle">Theme</button>
-      <button id="clearBtn" class="toggle">Clear</button>
-    </div>
-  </div>
-
   <div class="panel">
-
-    <div class="messages" id="messages"></div>
+    <div id="messages" class="messages"></div>
 
     <div class="input-area">
-      <input id="input" class="input" placeholder="Ask a question..." />
-      <button id="sendBtn" class="send">Send</button>
+      <input id="input" placeholder="Ask something..." />
+      <button id="sendBtn">Send</button>
     </div>
-
   </div>
 </div>
 
 <script>
-/* --------------- CONFIG: YOUR RAILWAY URL ------------------ */
-const API_BASE = "https://chatkit-agent-production.up.railway.app/";
+/* ---------------- CONFIG ---------------- */
+const API_BASE = "https://chatkit-agent-production.up.railway.app/";   // <-- REPLACE THIS
 
-/* --------------- Markdown Renderer (simple) ----------------- */
-function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function renderMarkdown(md){
-  if(!md) return "";
-  md = md.replace(/```([\\s\\S]*?)```/g, (m,code)=>'<pre><code>'+escapeHtml(code)+'</code></pre>');
-  md = md.replace(/^### (.*$)/gim,'<h3>$1</h3>');
-  md = md.replace(/^## (.*$)/gim,'<h2>$1</h2>');
-  md = md.replace(/^# (.*$)/gim,'<h1>$1</h1>');
-  md = md.replace(/\\*\\*(.*?)\\*\\*/g,'<strong>$1</strong>');
-  md = md.replace(/\\*(.*?)\\*/g,'<em>$1</em>');
-  md = md.replace(/`([^`]+)`/g,'<code>$1</code>');
-  md = md.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g,'<a href="$2" target="_blank">$1</a>');
-  md = md.replace(/\\n{2,}/g,'</p><p>');
-  return '<p>'+md+'</p>';
+/* ---------------- Markdown renderer ---------------- */
+function escapeHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function md(s) {
+  if (!s) return "";
+  s = s.replace(/```([\s\S]*?)```/g, (m,code)=>"<pre><code>"+escapeHtml(code)+"</code></pre>");
+  s = s.replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>");
+  s = s.replace(/\*(.*?)\*/g,"<em>$1</em>");
+  s = s.replace(/`([^`]+)`/g,"<code>$1</code>");
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank">$1</a>');
+  s = s.replace(/\n/g,"<br>");
+  return s;
 }
 
-/* ---------------- DOM Helpers ---------------- */
-const messagesEl=document.getElementById("messages");
-function addUser(text){
+/* ---------------- DOM helpers ---------------- */
+const messages = document.getElementById("messages");
+
+function addUserMessage(text) {
   const row=document.createElement("div");
   row.className="msg-row user";
   const b=document.createElement("div");
-  b.className="bubble user";
+  b.className="bubble";
   b.textContent=text;
   row.appendChild(b);
-  messagesEl.appendChild(row);
-  messagesEl.scrollTop=messagesEl.scrollHeight;
+  messages.appendChild(row);
+  messages.scrollTop=messages.scrollHeight;
 }
 
-function addAiStreamingBubble(){
+function addAiBubble() {
   const row=document.createElement("div");
   row.className="msg-row ai";
 
   const avatar=document.createElement("div");
-  avatar.className="avatar ai";
+  avatar.className="avatar";
   avatar.textContent="KB";
 
-  const container=document.createElement("div");
-
   const bubble=document.createElement("div");
-  bubble.className="bubble ai";
-
-  const streamDiv=document.createElement("div");
-  bubble.appendChild(streamDiv);
-
-  container.appendChild(bubble);
-
-  const meta=document.createElement("div");
-  meta.className="meta";
-  meta.textContent="Thinking...";
-  container.appendChild(meta);
-
-  const fb=document.createElement("div");
-  fb.className="feedback";
-  const up=document.createElement("button"); up.className="fb-btn"; up.textContent="👍";
-  const down=document.createElement("button"); down.className="fb-btn"; down.textContent="👎";
-  fb.appendChild(up); fb.appendChild(down);
-  container.appendChild(fb);
+  bubble.className="bubble";
+  bubble.innerHTML="<span id='stream'></span>";
 
   row.appendChild(avatar);
-  row.appendChild(container);
+  row.appendChild(bubble);
+  messages.appendChild(row);
 
-  messagesEl.appendChild(row);
-  messagesEl.scrollTop=messagesEl.scrollHeight;
+  messages.scrollTop=messages.scrollHeight;
 
-  return {streamDiv,meta,up,down};
+  return bubble.querySelector("#stream");
 }
 
 /* ---------------- STREAMING ---------------- */
-async function send(){
+async function send() {
   const input=document.getElementById("input");
   const text=input.value.trim();
-  if(!text) return;
+  if (!text) return;
 
-  addUser(text);
+  addUserMessage(text);
   input.value="";
 
-  const {streamDiv,meta,up,down} = addAiStreamingBubble();
+  const streamEl = addAiBubble();
 
-  const resp=await fetch(`${API_BASE}/api/stream?q=`+encodeURIComponent(text));
+  const resp = await fetch(`${API_BASE}/api/stream?q=` + encodeURIComponent(text));
 
-  if(!resp.ok){
-    streamDiv.textContent="Server error";
+  if (!resp.ok) {
+    streamEl.textContent = "Server error";
     return;
   }
 
-  const reader=resp.body.getReader();
-  const dec=new TextDecoder();
-  let acc="";
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let final = "";
 
-  while(true){
-    const {value,done}=await reader.read();
-    if(done) break;
+  while (true) {
+    const {value, done} = await reader.read();
+    if (done) break;
 
-    const chunk=dec.decode(value);
-    const parts=chunk.split("\\n\\n");
+    const chunk = decoder.decode(value);
+    const events = chunk.split("\n\n");
 
-    for(const p of parts){
-      if(!p.startsWith("data: ")) continue;
-
-      const jsonStr=p.slice(6).trim();
+    for (const e of events) {
+      if (!e.startsWith("data: ")) continue;
+      const json = e.slice(6).trim();
       let obj;
+      try { obj = JSON.parse(json); } catch { continue; }
 
-      try{ obj=JSON.parse(jsonStr); }catch(e){ continue; }
-
-      if(obj.type==="delta"){
-        streamDiv.textContent += obj.text;
-        acc += obj.text;
-        messagesEl.scrollTop=messagesEl.scrollHeight;
+      if (obj.type === "delta") {
+        streamEl.textContent += obj.text;
+        final += obj.text;
+        messages.scrollTop = messages.scrollHeight;
       }
-
-      if(obj.type==="done"){
-        acc = obj.text || acc;
+      if (obj.type === "done") {
+        final = obj.text || final;
       }
     }
   }
 
-  // Convert final streaming text into markdown
-  streamDiv.innerHTML = renderMarkdown(acc);
-  meta.textContent = "Answer ready";
-
-  // Feedback handlers
-  up.onclick=()=>sendFeedback(true);
-  down.onclick=()=>sendFeedback(false);
+  streamEl.innerHTML = md(final);
 }
 
-/* ---------------- Feedback ---------------- */
-async function sendFeedback(thumbs){
-  await fetch(`${API_BASE}/api/feedback`,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      message_id:"stream-only",
-      thumbs_up:thumbs,
-      comment:"",
-      user:"zoho"
-    })
-  });
-  alert("Thanks for the feedback!");
-}
-
-/* ---------------- Event Bindings ---------------- */
-document.getElementById("sendBtn").onclick = send;
-document.getElementById("input").addEventListener("keydown", e=>{
-  if(e.key==="Enter") send();
+/* ---------------- Event listeners ---------------- */
+document.getElementById("sendBtn").addEventListener("click", send);
+document.getElementById("input").addEventListener("keydown", e => {
+  if (e.key === "Enter") send();
 });
-
-document.getElementById("themeBtn").onclick=()=>{
-  const el=document.body;
-  el.dataset.theme = (el.dataset.theme==="dark")?"light":"dark";
-};
-
-document.getElementById("clearBtn").onclick=()=>{
-  messagesEl.innerHTML="";
-};
 </script>
 
 </body>
