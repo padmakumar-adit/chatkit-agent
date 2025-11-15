@@ -1,14 +1,16 @@
 {
-  "name": "agent-sdk-chat",
+  "name": "agent_stream_ui_b",
   "version": "1.0.0",
   "type": "module",
   "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "@openai/agents": "^0.0.14",
     "express": "^4.18.2",
-    "node-fetch": "^3.3.2"
+    "@openai/agents": "^0.0.14"
   }
 }
